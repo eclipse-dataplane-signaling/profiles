@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e
+
+checkout() {
+  local ref="$1"
+  local dir="$2"
+  echo "Processing $ref -> $dir"
+  git -c advice.detachedHead=false clone $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git --depth 1 --branch "$ref" --quiet "$dir/clone"
+  for item in "$dir/clone"/*; do mv "$item" "$dir/"; done
+  [ -d "$dir/specifications/schemas" ] && mv "$dir/specifications/schemas" "$dir/schemas" # move schemas folder in the root, if it exist
+  rm -rf "$dir/clone"
+}
+
+git fetch --all --tags
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+checkout "$current_branch" HEAD
+
+for tag in $(git tag); do
+  checkout "$tag" "$tag"
+done
