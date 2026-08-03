@@ -1,0 +1,4 @@
+.idea
+
+# Locally-generated, versioned render output produced by .github/scripts/checkout-tags.sh
+/HEAD/
