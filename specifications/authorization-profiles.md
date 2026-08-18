@@ -103,15 +103,22 @@ The `authorization` object contains the following properties:
 |              | - `tokenExchangeEndpoint`: The URL of the broker's token exchange endpoint as defined in [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693).                                                                                     |
 |              | - `issuer`: The expected `iss` claim of tokens minted by the broker. The receiving party MUST reject tokens whose `iss` does not match this value.                                                                                      |
 |              | - `jwksUri`: A URL pointing to the broker's JSON Web Key Set ([RFC7517](https://datatracker.ietf.org/doc/html/rfc7517)) endpoint. The receiving party fetches and caches the JWKS from this URL to verify tokens issued by this broker. |
+|              | - `resource`: The `id` URI of the [Principal Resource](#principal-resource) that tokens issued by the party owning this object speak for. Sent as the `resource` parameter of the exchange request. A party that only receives signaling requests MAY omit it. |
+| **Optional** | - `audience`: The identifier of the receiving party that will consume the exchanged token. Sent as the `audience` parameter of the exchange request.                                                                                    |
+|              | - `scope`: The scopes requested from the broker. Sent as the `scope` parameter of the exchange request.                                                                                                                                 |
 
 Inline JSON Web Key Sets are not permitted for this profile; the broker's keys MUST be served from `jwksUri`. The
 receiving party MUST verify the signature of every incoming JWT against the keys obtained from `jwksUri`; signature
 verification MUST NOT be skipped. The receiving party MUST use the key whose `kid` matches the `kid` header claim of the
 incoming JWT. If no `kid` is present, the receiving party MAY attempt verification with each key in the set.
 
-The `authorization` object does not carry the list of principals the issuing party may act as. The set of valid
-principals is known to the receiving party out-of-band; the receiving party associates each incoming request with the
-correct resource by reading the `sub` and `participant_context` claims of the presented JWT.
+When `audience` or `scope` is omitted from the `authorization` object, the issuing party MAY take the value from its
+own local configuration. This is a deployment concern only; the exchange request itself is unaffected.
+
+The `authorization` object names at most the single principal its owner acts as; it never carries an enumerated list of
+principals the receiving party will accept. The set of valid principals is known to the receiving party out-of-band; the
+receiving party associates each incoming request with the correct component by reading the `client_id` claim of the
+presented JWT, falling back to `sub` when the broker does not mint one.
 
 The following is a non-normative example using a JWKS URI:
 
@@ -119,7 +126,12 @@ The following is a non-normative example using a JWKS URI:
 {
   "authorization": {
     "type": "oauth2_token_exchange",
-    "metadataEndpoint": "https://broker.example.com/auth/.well-known/oauth-authorization-server"
+    "tokenExchangeEndpoint": "https://broker.example.com/token",
+    "issuer": "https://broker.example.com",
+    "jwksUri": "https://broker.example.com/.well-known/jwks.json",
+    "resource": "urn:principal:consumer-controlplane",
+    "audience": "provider-data-plane",
+    "scope": "signaling:dataflow"
   }
 }
 ```
@@ -133,12 +145,11 @@ A Principal Resource has the following normative properties:
 
 |              |                                                                                                                                |
 |--------------|--------------------------------------------------------------------------------------------------------------------------------|
-| **Required** | - `id`: An absolute URI. The `sub` claim of any JWT exchanged for this principal MUST equal this URI verbatim.                 |
-|              | - `participantContextId`: The participant context this principal acts within. Semantics are deferred to the participant layer. |
+| **Required** | - `id`: An absolute URI. The `sub` claim of any JWT exchanged for this principal MUST equal this URI verbatim. |
 
-Implementations MAY attach additional properties (for example display metadata, allowed scopes, or constraints on which
-workload identities may be exchanged for this principal); this specification does not constrain them. Only the `id`
-crosses the wire, as the `sub` of the exchanged JWT.
+Implementations MAY attach additional properties (for example display metadata, allowed scopes, the participant context
+the principal acts within, or constraints on which workload identities may be exchanged for this principal); this
+specification does not constrain them. Only the `id` crosses the wire, as the `sub` of the exchanged JWT.
 
 The URI scheme of `id` is unconstrained. Implementations MAY use `urn:`, opaque `https:` URIs, or resolvable HTTP
 endpoints. Whether the URI is dereferenceable is a deployment choice.
@@ -212,7 +223,8 @@ The request parameters are:
 | `requested_token_type` | SHOULD      | The fixed value `urn:ietf:params:oauth:token-type:jwt`. Brokers MUST mint a JWT regardless of whether this parameter is supplied. |
 
 The issuing party MUST NOT include client authentication credentials (`client_id`, `client_secret`, etc.). The workload
-credential is the sole proof of identity to the broker.
+credential is the sole proof of identity to the broker. This is unrelated to the `client_id` claim of the minted token,
+which the broker sets according to its own policy; see [Token Claims](#token-exchange-token-claims).
 
 #### Broker Behavior
 
@@ -262,8 +274,8 @@ The `scope` field MUST reflect the scopes actually granted, which MAY be narrowe
 #### Token Rotation
 
 Exchanged tokens are short-lived. The issuing party SHOULD obtain a fresh exchanged token before its `exp` and MUST NOT
-reuse an expired token. Implementations SHOULD cache exchanged tokens keyed by `(resource, audience, scope)` for the
-lifetime of the token to avoid per-request exchanges.
+reuse an expired token. Implementations SHOULD cache exchanged tokens keyed by
+`(tokenExchangeEndpoint, resource, audience, scope)` for the lifetime of the token to avoid per-request exchanges.
 
 Workload credentials are themselves short-lived and rotate independently of exchanged tokens. The issuing party MUST
 re-read the workload credential from its source (projected volume, Workload API) before each exchange to ensure it
@@ -282,7 +294,7 @@ The access token MUST be a JWT and MUST contain the following claims:
 | `sub`                 | MUST        | The `id` URI of the Principal Resource this token speaks for.                                                                                                                                |
 | `aud`                 | MUST        | The identifier of the target plane receiving the token.                                                                                                                                      |
 | `scope`               | MUST        | The scopes granted by the broker. The receiving party MUST use this claim to authorize the requested operation.                                                                              |
-| `participant_context` | MUST        | Mirrors the `participantContextId` of the Principal Resource named by `sub`. Allows the receiving party to associate the request with a participant context without resolving `sub`.         |
+| `client_id`           | SHOULD      | The identifier of the component the token speaks for: the `dataplaneId` for a [=Data Plane=] token, the `controlplaneId` for a [=Control Plane=] token. Letting this claim name the component keeps `sub` free to be an absolute Principal Resource URI. |
 | `iat`                 | MUST        | The time at which the token was issued (seconds since Unix epoch).                                                                                                                           |
 | `exp`                 | MUST        | The expiration time of the token (seconds since Unix epoch). Receiving parties MUST reject expired tokens.                                                                                   |
 | `jti`                 | SHOULD      | A unique token identifier. Receiving parties SHOULD use this to detect and reject token replay attempts.                                                                                     |
@@ -296,12 +308,12 @@ On every incoming request, the receiving party MUST:
 2. Verify that `iss` equals the registered `issuer`.
 3. Verify that `aud` equals the receiving party's own identifier.
 4. Verify that `exp` has not passed, and apply replay detection using `jti` where supported.
-5. Associate the request with the resource named by `sub`, and use `scope` to authorize the requested operation against
-   that resource.
+5. Associate the request with the component named by `client_id`, falling back to the resource named by `sub` when the
+   broker does not mint a `client_id`, and use `scope` to authorize the requested operation against it.
 
 The receiving party does not consult an enumerated principal list during validation. Authorization reduces to "does this
-`sub` plus `scope` permit this operation on this resource?", which the receiving party answers using its own knowledge
-of valid principals.
+`client_id` (or, absent it, this `sub`) plus `scope` permit this operation on this resource?", which the receiving party
+answers using its own knowledge of valid principals.
 
 ```mermaid
 sequenceDiagram
@@ -313,6 +325,6 @@ sequenceDiagram
     broker ->> broker: Validate workload JWT<br>Apply policy<br>Mint scoped JWT
     broker ->> sender: Exchanged JWT
     sender ->> receiver: Signaling request<br>(bearer: exchanged JWT)
-    receiver ->> receiver: Verify signature, iss, aud, exp<br>Associate sub with resource<br>Authorize via scope
+    receiver ->> receiver: Verify signature, iss, aud, exp<br>Associate client_id (or sub)<br>Authorize via scope
     receiver ->> sender: Response
 ```
