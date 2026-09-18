@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://w3id.org/dspace-sig/profile/access-token-claims/claims-schema.json",
+  "title": "Access Token Claim Set",
+  "description": "Claim set for access tokens carried in a DataAddress, as defined by the Access Token Claims profile (https://w3id.org/dspace-sig/profile/access-token-claims). Corresponds to the JWT payload under the JWT Binding, or to the introspection response (minus 'active') under the Opaque Token Binding. Additional members are permitted for propagated counterparty claims and claims unknown to the profile.",
+  "type": "object",
+  "properties": {
+    "iss": {
+      "type": "string",
+      "description": "Identifier of the issuing party's token issuer.",
+      "examples": [
+        "https://provider.example.com"
+      ]
+    },
+    "sub": {
+      "type": "string",
+      "description": "Participant identity of the requesting party. Equals the counterPartyId of the DataFlowPrepareMessage or DataFlowStartMessage.",
+      "examples": [
+        "did:web:consumer.example.com"
+      ]
+    },
+    "aud": {
+      "description": "Identifier of the receiving application, typically the DataAddress endpoint or the issuing Data Plane identifier.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ],
+      "examples": [
+        "https://provider.example.com/data/asset-123"
+      ]
+    },
+    "iat": {
+      "type": "integer",
+      "description": "Time at which the token was issued, in seconds since the Unix epoch.",
+      "minimum": 0
+    },
+    "exp": {
+      "type": "integer",
+      "description": "Expiration time of the token, in seconds since the Unix epoch.",
+      "minimum": 0
+    },
+    "jti": {
+      "type": "string",
+      "description": "Unique token identifier used for replay detection."
+    },
+    "dataFlowId": {
+      "type": "string",
+      "description": "Identifier of the Data Flow the token grants access to. Equals the dataFlowId of the DataFlowPrepareMessage or DataFlowStartMessage.",
+      "examples": [
+        "test-transfer-process-id"
+      ]
+    },
+    "datasetId": {
+      "type": "string",
+      "description": "Identifier of the Dataset being transferred. Equals the datasetId of the DataFlowPrepareMessage or DataFlowStartMessage.",
+      "examples": [
+        "asset-123"
+      ]
+    },
+    "agreementId": {
+      "type": "string",
+      "description": "Identifier of the contract agreement under which the data flow takes place. Equals the agreementId of the DataFlowPrepareMessage or DataFlowStartMessage.",
+      "examples": [
+        "test-agreement-id"
+      ]
+    }
+  },
+  "required": [
+    "iss",
+    "sub",
+    "aud",
+    "iat",
+    "exp",
+    "dataFlowId"
+  ],
+  "additionalProperties": true
+}

@@ -56,7 +56,8 @@ The `endpoint` property MUST be a valid HTTP URL that uses the HTTPS scheme. A r
 This profile defines the following `endpointProperties` within the `DataAddress`:
 
 - `authorization` — OPTIONAL: An access token the requesting party presents to the API exposed at `endpoint`. If
-  present, `authType` MUST also be present.
+  present, `authType` MUST also be present. The token is opaque to the requesting party. An issuing party MAY
+  structure it according to the [Access Token Claims](#access-token-claims) profile.
 - `authType` — REQUIRED if `authorization` is present: The token presentation type. Implementations MUST support the
   value `bearer`, in which case the token is presented in the HTTP `Authorization` header as defined in
   [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750).
@@ -139,6 +140,14 @@ A `DataAddress` defined by this profile MAY additionally carry the `endpointProp
 [Token Renewal](#token-renewal) profile. When the `refreshToken` property is present, the requesting party SHOULD
 renew the `authorization` access token as described in that profile. Token renewal is typically applicable to pull
 transfers, where the consumer presents the access token to the provider API.
+
+### Access Token {#http-access-token}
+
+> This section is normative.
+
+The `authorization` token MAY conform to the [Access Token Claims](#access-token-claims) profile. When it does, the
+`aud` claim SHOULD be the `endpoint` URL of the `DataAddress`, or a URL of which `endpoint` is a prefix, so that the
+receiving application can verify that the token was issued for the API it exposes.
 
 ### Metadata
 
