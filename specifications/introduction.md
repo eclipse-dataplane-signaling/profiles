@@ -14,6 +14,8 @@ This document defines:
   MUST satisfy.
 - The [HTTP Transfer Profile](#http-transfer-profile) — a transport-protocol profile for transferring data over HTTP.
 - The [Token Renewal](#token-renewal) profile — an OAuth 2.0 refresh-token mechanism for pull transfers.
+- The [Access Token Claims](#access-token-claims) profile — an encoding-independent claim set for access tokens
+  carried in a `DataAddress`, with JWT and token introspection bindings.
 - [Authorization Profiles](#authorization-profiles) — profiles for authorizing data plane and control plane
   registration.
 
