@@ -37,13 +37,13 @@ This profile defines the following additional `EndpointProperties` within the `D
 - `refreshTokenType` — RESERVED FOR FUTURE USE.
 
 The following example of a `DataAddress` containing the above properties is NON-NORMATIVE:
-           
+
 ```json
-  {
+{
   "dataAddress": {
     "@type": "DataAddress",
-    "endpointType": "https://w3id.org/idsa/v4.1/HTTP",
-    "endpoint": "http://example.com",
+    "endpointType": "https://w3id.org/dspace-sig/profile/http-pull",
+    "endpoint": "https://example.com/data",
     "endpointProperties": [
       {
         "name": "authorization",
@@ -85,6 +85,20 @@ a sender-constrained refresh token, the provider MUST bind it to the requesting 
 identity as defined
 by [DCP](https://eclipse-dataspace-dcp.github.io/decentralized-claims-protocol/v1.0.1/).  [Section 3.2](#provider-request-validation)
 defines how refresh token requests are authenticated using a proof-of-possession scheme.
+
+#### JSON Schema
+
+> This section is normative.
+
+The JSON Schema for the `DataAddress` defined by this profile is published at:
+
+```
+https://w3id.org/dspace-sig/profile/token-renewal/data-address-schema.json
+```
+
+The schema references the base `DataAddress` schema governed by this specification. It defines the `endpointProperties`
+that a `DataAddress` using this profile may contain, including the requirement that `expiresIn` is present if
+`refreshToken` is present.
 
 ### The Refresh Request
 
