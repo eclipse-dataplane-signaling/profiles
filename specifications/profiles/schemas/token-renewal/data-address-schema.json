@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://w3id.org/dspace-sig/profile/token-renewal/data-address-schema.json",
+  "title": "Token Renewal Profile DataAddress",
+  "description": "DataAddress for the Token Renewal Profile. Extends the base DSP DataAddress schema.",
+  "allOf": [
+    {
+      "$ref": "https://w3id.org/dspace/2025/1/transfer/data-address-schema.json"
+    }
+  ],
+  "properties": {
+    "endpointType": {
+      "type": "string",
+      "description": "Identifies the transfer direction using the -push or -pull moniker.",
+      "enum": [
+        "https://w3id.org/dspace-sig/profile/http-push",
+        "https://w3id.org/dspace-sig/profile/http-pull"
+      ]
+    },
+    "endpoint": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "description": "A valid HTTP URL using the HTTPS scheme.",
+      "examples": ["https://provider.example.com/data/asset-123"]
+    },
+    "endpointProperties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "authorization",
+              "authType",
+              "refreshToken",
+              "expiresIn",
+              "refreshEndpoint",
+              "refreshTokenType"
+            ]
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "value"],
+        "allOf": [
+          {
+            "if": {
+              "properties": { "name": { "const": "refreshToken" } }
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "An opaque string that clients MUST present when requesting token refresh."
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "name": { "const": "expiresIn" } }
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$",
+                  "description": "The lifetime in seconds of the access token.",
+                  "examples": ["300"]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "name": { "const": "refreshEndpoint" } }
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://",
+                  "description": "The HTTPS endpoint of the provider authorization server that handles token refresh requests.",
+                  "examples": ["https://example.com/authorization/refresh"]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "name": { "const": "refreshTokenType" } }
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "Reserved for future use."
+                }
+              }
+            }
+          }
+        ]
+      },
+      "if": {
+        "contains": {
+          "type": "object",
+          "properties": { "name": { "const": "refreshToken" } },
+          "required": ["name"]
+        }
+      },
+      "then": {
+        "contains": {
+          "type": "object",
+          "properties": { "name": { "const": "expiresIn" } },
+          "required": ["name"]
+        }
+      }
+    }
+  },
+  "required": ["endpointType", "endpoint"]
+}
